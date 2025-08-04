@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fffce8;
+  --foreground: #08305e;
+  --input-background: #fffce8;
+  --input-text: #08305e;
+  --link-color: #08305e;
+  --link-hover: #05203c;
+  --footer-link: #08305e;
+  --input-text-rgb: 8, 48, 94;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-space-grotesk), Arial, Helvetica, sans-serif;
+}
+
+a {
+  color: var(--link-color);
+}
+a:hover {
+  color: var(--link-hover);
+}
+
+#nprogress .bar {
+  background: var(--foreground);  
+  height: 3px; 
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--foreground), 0 0 5px var(--foreground);
+}
+
+#nprogress .spinner .spinner-icon {
+  border-top-color: var(--foreground);
+  border-left-color: var(--foreground);
+  
+}
+
+#nprogress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10000;
+}
+
+.notification-toast {
+  background: white;
+  color: black;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  cursor: pointer;
+}
