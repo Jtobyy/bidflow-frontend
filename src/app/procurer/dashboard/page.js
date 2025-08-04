@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import BidEvaluationChart from "@/app/components/procurer/BidEvaluationChart";
 import { useApi } from "@/app/services/axios";
+import { useRouter, useSearchParams } from "next/navigation";
+
+
 
 const summaryCards = [
   { label: "Tenders", key: "tenders", icon: Briefcase, color: "#38a0f7" },
@@ -18,7 +21,6 @@ const summaryCards = [
 ];
 
 const quickActions = [
-  { label: "Create Tender", icon: Briefcase, color: "#38a0f7", onClick: () => alert("Create Tender") },
   { label: "Review Bids", icon: FileSearch, color: "#3EBF0F", onClick: () => alert("Review Bids") },
   { label: "Upload Bid", icon: UploadCloud, color: "#F59E0B", onClick: () => alert("Upload Bid") },
   { label: "Generate Report", icon: FileTextIcon, color: "#10B981", onClick: () => alert("Generate Report") },
@@ -32,6 +34,8 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const router = useRouter();
+
   const { api } = useApi();
 
   const fetchData = async () => {
@@ -121,16 +125,24 @@ export default function Dashboard() {
         <div className="rounded-xl shadow bg-[#08305e] p-6 border border-[#254c7c]">
           <div className="font-semibold mb-3" style={{ color: cardText }}>Quick Actions</div>
           <div className="grid grid-cols-2 gap-4">
-            {quickActions.map(({ label, icon: Icon, color, onClick }) => (
               <button
-                key={label}
-                className="flex items-center gap-2 px-3 py-3 rounded-lg bg-[#254c7c] border border-[#254c7c] shadow hover:bg-[#2d5e9a] text-[#fffce8] font-medium hover:shadow-lg transition"
-                onClick={onClick}
+                className="flex cursor-pointer items-center gap-2 px-3 py-3 rounded-lg bg-[#254c7c] border border-[#254c7c] shadow hover:bg-[#2d5e9a] text-[#fffce8] font-medium hover:shadow-lg transition"
+                onClick={() => router.push('/procurer/tenders?action=new')}
               >
-                <Icon size={18} style={{ color }} />
-                <span className="text-sm">{label}</span>
+                <Briefcase size={18} style={{ color: "#38a0f7" }} />
+                <span className="text-sm">Create Tender</span>
               </button>
-            ))}
+
+              {quickActions.map(({ label, icon: Icon, color, onClick }) => (
+                <button
+                  key={label}
+                  className="flex cursor-pointer items-center gap-2 px-3 py-3 rounded-lg bg-[#254c7c] border border-[#254c7c] shadow hover:bg-[#2d5e9a] text-[#fffce8] font-medium hover:shadow-lg transition"
+                  onClick={onClick}
+                >
+                  <Icon size={18} style={{ color }} />
+                  <span className="text-sm">{label}</span>
+                </button>
+              ))}
           </div>
         </div>
         {/* Leaderboard */}

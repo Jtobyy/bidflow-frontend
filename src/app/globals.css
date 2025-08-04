@@ -65,8 +65,8 @@ a:hover {
 }
 
 .notification-toast {
-  background: white;
-  color: black;
+  background: var(--background);
+  color: var(--foreground);
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);

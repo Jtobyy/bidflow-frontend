@@ -7,17 +7,8 @@ const NetworkStatus = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [showOffline, setShowOffline] = useState(false);
   const [showRestored, setShowRestored] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
-    // Check system preference for dark mode
-    const checkDarkMode = () => {
-      setIsDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches);
-    };
-
-    checkDarkMode();
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", checkDarkMode);
-
     let offlineTimeout;
 
     const handleOnline = () => {
@@ -44,7 +35,6 @@ const NetworkStatus = () => {
       clearTimeout(offlineTimeout);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.matchMedia("(prefers-color-scheme: dark)").removeEventListener("change", checkDarkMode);
     };
   }, [isOnline]);
 
@@ -53,7 +43,7 @@ const NetworkStatus = () => {
       {showOffline && (
         <div
           className={`fixed bottom-5 left-5 p-3 rounded-lg shadow-lg w-96 z-[9999] flex items-center justify-between border ${
-            isDarkMode ? "bg-white text-black border-gray-400" : "bg-black text-white border-gray-600"
+            "bg-[#fffce8] text-[#08305e] border-gray-600"
           }`}
         >
           <div className="flex items-center gap-3">
@@ -69,7 +59,7 @@ const NetworkStatus = () => {
       {showRestored && (
         <div
           className={`fixed bottom-5 left-5 p-3 rounded-lg shadow-lg w-96 z-[9999] flex items-center justify-between border ${
-            isDarkMode ? "bg-white text-black border-gray-400" : "bg-black text-white border-gray-600"
+            "bg-[#fffce8] text-[#08305e] border-gray-600"
           }`}
         >
           <div className="flex items-center gap-3">
