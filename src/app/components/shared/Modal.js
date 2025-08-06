@@ -34,7 +34,7 @@ const Modal = ({
           </p>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#254c7c] rounded-full transition-colors"
+            className="p-2 hover:bg-[#254c7c] rounded-full transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <FontAwesomeIcon

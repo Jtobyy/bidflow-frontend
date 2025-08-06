@@ -1,6 +1,6 @@
 "use client";
 import "../globals.css";
-import Sidebar from "../components/procurer/Sidebar";
+import Sidebar from "../components/vendor/Sidebar";
 import Navbar from "../components/shared/Navbar";
 import NetworkStatus from "../components/shared/NetworkStatus";
 import NotificationModal from "../components/shared/NotificationModal";

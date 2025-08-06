@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/hooks/useAuth';
-import { getUserFromStorage } from '@/app/utils/getUserFromStorage';
+import { getUserFromStorage, getCompanyFromStorage } from '@/app/utils/getUserFromStorage';
 
 
 const Page = () => {
@@ -14,12 +14,13 @@ const Page = () => {
         if (typeof window != 'undefined') {
             window.addEventListener('load', () => {    
                 const user = getUserFromStorage();
+                const company = getCompanyFromStorage();
 
                 if (!isAuthenticated && !user) {
                     router.push('/auth/sign-in');
                 } else if (user && isAuthenticated) {
-                    const isProcurer = user.roles?.includes("procurer") || user.roles?.includes("procurer");
-                    router.push(isProcurer ? '/procurer' : '/nativecrm');
+                    const isProcurer = company?.type == "procurer" ;
+                    router.push(isProcurer ? '/procurer' : '/vendor');
                     return;
                 } else {
                     router.push('/auth/sign-in');
@@ -30,12 +31,12 @@ const Page = () => {
 
     useEffect(() => {
         const user = getUserFromStorage();
+        const company = getCompanyFromStorage();
 
         if (isAuthenticated && user) {
             const timer = setTimeout(() => {
-                router.push('/procurer');   
-                const isProcurer = user.roles?.includes("Procurer") || user.roles?.includes("procurer");
-                router.push(isProcurer ? '/procurer' : '/procurer');
+                const isProcurer = company?.type == "procurer";
+                router.push(isProcurer ? '/procurer' : '/vendor');
                 return;
             }, 1000);
             return () => clearTimeout(timer);

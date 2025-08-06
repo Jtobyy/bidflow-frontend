@@ -91,8 +91,7 @@ export default function TendersList() {
   return (
     <div className="px-8 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#08305e]">Tenders</h1>
+      <div className="flex items-center justify-end mb-6">
         <button onClick={handleOpenModal} className="flex items-center gap-2 cursor-pointer bg-[#38a0f7] text-white rounded-lg px-5 py-2 font-semibold shadow hover:bg-[#256bb7]">
           <Plus size={18} /> New Tender
         </button>

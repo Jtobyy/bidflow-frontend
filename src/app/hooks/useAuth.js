@@ -47,6 +47,7 @@ export const AuthProvider = ({ children }) => {
     const login = (data) => {
         setUser(data.user);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('company', JSON.stringify(data.company));
         localStorage.setItem('access', data.access);
         localStorage.setItem('refresh', data.refresh);
         toast.success('Login Successful');

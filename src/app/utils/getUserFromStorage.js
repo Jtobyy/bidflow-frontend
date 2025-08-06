@@ -6,3 +6,13 @@ export const getUserFromStorage = () => {
         return null;
     }
 };
+
+export const getCompanyFromStorage = () => {
+    try {
+        const company = localStorage.getItem('company');
+        return company ? JSON.parse(company) : null;
+    } catch (e) {
+        return null;
+    }
+};
+    
