@@ -29,8 +29,8 @@ export default function VendorTendersList() {
 
   const detailsId = searchParams.get("action") === "details" ? searchParams.get("id") : null;
 
-  const openDetails = (id) => router.push(`/vendor/tenders?action=details&id=${id}`);
-  const closeDetails = () => router.push('/vendor/tenders');
+  const openDetails = (id) => router.replace(`/vendor/tenders?action=details&id=${id}`);
+  const closeDetails = () => router.replace('/vendor/tenders');
 
   // Fetch list (first page only for demo)
   useEffect(() => {

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  RefreshCw, Briefcase, FileText, FileCheck, Users2, ShieldCheck, Clock,
-  UploadCloud, FileSearch, FileText as FileTextIcon, Trophy, Activity
+  RefreshCw, Briefcase, FileText, FileCheck, Users2, 
+  ShieldCheck, Clock, FileSearch, FileText as FileTextIcon, 
+  FileArchive, Activity, 
 } from "lucide-react";
 import BidEvaluationChart from "@/app/components/procurer/BidEvaluationChart";
 import { useApi } from "@/app/services/axios";
@@ -21,8 +22,6 @@ const summaryCards = [
 ];
 
 const quickActions = [
-  { label: "Review Bids", icon: FileSearch, color: "#3EBF0F", onClick: () => alert("Review Bids") },
-  { label: "Upload Bid", icon: UploadCloud, color: "#F59E0B", onClick: () => alert("Upload Bid") },
   { label: "Generate Report", icon: FileTextIcon, color: "#10B981", onClick: () => alert("Generate Report") },
 ];
 
@@ -133,7 +132,23 @@ export default function Dashboard() {
                 <span className="text-sm">Create Tender</span>
               </button>
 
-              {quickActions.map(({ label, icon: Icon, color, onClick }) => (
+              <button
+                className="flex cursor-pointer items-center gap-2 px-3 py-3 rounded-lg bg-[#254c7c] border border-[#254c7c] shadow hover:bg-[#2d5e9a] text-[#fffce8] font-medium hover:shadow-lg transition"
+                onClick={() => router.push('/procurer/bids')}
+              >
+                <FileSearch size={18} style={{ color: "#3EBF0F" }} />
+                <span className="text-sm">Review Bids</span>
+              </button>
+
+              <button
+                className="flex cursor-pointer items-center gap-2 px-3 py-3 rounded-lg bg-[#254c7c] border border-[#254c7c] shadow hover:bg-[#2d5e9a] text-[#fffce8] font-medium hover:shadow-lg transition"
+                onClick={() => router.push('/procurer/documents')}
+              >
+                <FileArchive size={18} style={{ color: "#F59E0B" }} />
+                <span className="text-sm">Review Documents</span>
+              </button>
+
+              {/* {quickActions.map(({ label, icon: Icon, color, onClick }) => (
                 <button
                   key={label}
                   className="flex cursor-pointer items-center gap-2 px-3 py-3 rounded-lg bg-[#254c7c] border border-[#254c7c] shadow hover:bg-[#2d5e9a] text-[#fffce8] font-medium hover:shadow-lg transition"
@@ -142,7 +157,7 @@ export default function Dashboard() {
                   <Icon size={18} style={{ color }} />
                   <span className="text-sm">{label}</span>
                 </button>
-              ))}
+              ))} */}
           </div>
         </div>
         {/* Leaderboard */}

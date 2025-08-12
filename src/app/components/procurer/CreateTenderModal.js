@@ -4,16 +4,20 @@ import Modal from "../shared/Modal";
 import { useApi } from "@/app/services/axios";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
-import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
+import { components as RSComponents } from "react-select";
 
 
-const DOCUMENT_OPTIONS = [
+
+const SYSTEM_DOCS = [
+  { label: "Technical Proposal", value: "TECHNICAL_PROPOSAL" },
+  { label: "Financial Proposal", value: "FINANCIAL_PROPOSAL" },
   { label: "CAC", value: "CAC" },
   { label: "TIN", value: "TIN" },
   { label: "TCC", value: "TCC" },
-  { label: "ISO_PECB", value: "ISO_PECB" },
-  { label: "BID", value: "BID", isDisabled: true },
+  { label: "ISO PECB", value: "ISO_PECB" },
 ];
+
 
 const selectStyles = {
     control: (base) => ({
@@ -44,14 +48,21 @@ const selectStyles = {
 export default function CreateTenderModal({ isOpen, onClose, onCreated }) {
   const { api } = useApi();
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    deadline: "",
-    required_documents: ["BID"],
-    tender_document: null,
-    extra_documents: []
+    title: "", description: "", deadline: "",
+    submission_mode: "TWO_ENVELOPE",
+    required_documents: ["TECHNICAL_PROPOSAL", "FINANCIAL_PROPOSAL"],
+    custom_required_documents: [], // new
+    tender_document: null, extra_documents: []
   });
   const [loading, setLoading] = useState(false);
+
+  const PINNED = new Set(["TECHNICAL_PROPOSAL", "FINANCIAL_PROPOSAL"]);
+
+  const MultiValueRemove = (props) => {
+    const v = props.data?.value;
+    if (PINNED.has(v)) return null;
+    return <RSComponents.MultiValueRemove {...props} />;
+  };
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -85,28 +96,23 @@ export default function CreateTenderModal({ isOpen, onClose, onCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const data = new FormData();
       data.append("title", form.title);
       data.append("description", form.description);
       data.append("deadline", form.deadline ? dayjs(form.deadline).toISOString() : "");
-      form.required_documents.forEach(doc => data.append("required_documents", doc));
+      data.append("submission_mode", form.submission_mode);
+      form.required_documents.forEach(v => data.append("required_documents", v));
+      form.custom_required_documents.forEach(v => data.append("custom_required_documents", v));
       if (form.tender_document) data.append("tender_document", form.tender_document);
       form.extra_documents.forEach(file => data.append("extra_documents", file));
-
-      await api.post("/tenders/", data, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
+  
+      await api.post("/tenders/", data, { headers: { "Content-Type": "multipart/form-data" } });
       toast.success("Tender created successfully!");
-      onClose();
-      if (onCreated) onCreated();
-    } catch (error) {
+      onClose(); onCreated?.();
+    } catch {
       toast.error("Failed to create tender.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
@@ -156,27 +162,47 @@ export default function CreateTenderModal({ isOpen, onClose, onCreated }) {
           </div>
           <div>
             <label className="block font-medium mb-2">Required Documents</label>
-            <Select
-                isMulti
-                options={DOCUMENT_OPTIONS}
-                value={DOCUMENT_OPTIONS.filter(
-                    (opt) => form.required_documents.includes(opt.value) || opt.value === "BID"
-                )}
-                onChange={(selected) => {
-                    // Always include BID in value
-                    setForm((f) => ({
-                    ...f,
-                    required_documents: [
-                        ...selected.map((s) => s.value).filter((v) => v !== "BID"),
-                        "BID"
-                    ],
-                    }));
-                }}
-                closeMenuOnSelect={false}
-                isOptionDisabled={(option) => option.value === "BID"}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                styles={selectStyles}
+            <CreatableSelect
+              isMulti
+              options={SYSTEM_DOCS}
+              // Always include the two pinned docs in the value
+              value={[
+                // pinned first
+                ...SYSTEM_DOCS.filter(o => PINNED.has(o.value)),
+                // other system docs selected
+                ...SYSTEM_DOCS.filter(
+                  o => !PINNED.has(o.value) && form.required_documents.includes(o.value)
+                ),
+                // custom docs selected
+                ...(form.custom_required_documents?.map(name => ({ label: name, value: name })) ?? [])
+              ]}
+              onChange={(selected) => {
+                const values = (selected || []).map(s => s.value);
+
+                // Ensure pinned always present
+                const withPinned = Array.from(new Set([...values, ...PINNED]));
+
+                setForm(f => ({
+                  ...f,
+                  required_documents: withPinned.filter(v => SYSTEM_DOCS.some(o => o.value === v)),
+                  custom_required_documents: withPinned.filter(v => !SYSTEM_DOCS.some(o => o.value === v)),
+                }));
+              }}
+              // Don’t allow disabling the whole control
+              isClearable={false}
+              closeMenuOnSelect={false}
+              placeholder="Select or type to create…"
+              // Disable selecting pinned from the menu (already selected) and keep them from being clicked off
+              isOptionDisabled={(option) => PINNED.has(option.value)}
+              // Fix dropdown clipped by modal/parent overflow
+              menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+              menuPosition="fixed"
+              styles={{
+                ...selectStyles,
+                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+              }}
+              // Hide remove icon for pinned chips
+              components={{ MultiValueRemove }}
             />
           </div>
           <div>

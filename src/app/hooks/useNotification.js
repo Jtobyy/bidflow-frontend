@@ -10,51 +10,67 @@ export function NotificationProvider({ children }) {
   const [isNotificationVisible, setIsNotificationVisible] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { api } = useApi();
-  const { isAuthenticated, user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [nextUrl, setNextUrl] = useState(null);
+
+  const { api } = useApi();
+  const { isAuthenticated } = useAuth();
   const wsRef = useRef(null);
 
-  // Fetch notifications from API
-  const fetchNotifications = async () => {
+  // ------- Helpers
+  const normalize = (n) => ({
+    id: n.id,
+    sender_name: n.recipient?.username || 'System',
+    avatar: n.recipient?.avatar || null,
+    text: n.message,
+    description: String(n?.data?.type || '')
+      .replace(/_/g, ' ')
+      .toUpperCase(),
+    is_read: !!n.read,
+    created_at: n.created_at,
+  });
+
+  const recalcUnread = (items) =>
+    items.reduce((acc, curr) => acc + (curr.is_read ? 0 : 1), 0);
+
+  // ------- Fetch (page 1 or arbitrary URL)
+  const fetchNotifications = async (url = '/notifications', { append = false } = {}) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/notifications');
-      if (Array.isArray(data)) {
-        setNotifications(data.map(n => ({
-          id: n.id,
-          sender_name: n.recipient?.username || 'System',
-          avatar: n.recipient?.avatar,
-          text: n.message,
-          description: n.data?.type?.replace('_', ' ').toUpperCase(),
-          is_read: n.read,
-          created_at: n.created_at,
-        })));
-        setUnreadCount(data.filter(n => !n.read).length);
-      }
+      const { data } = await api.get(url);
+
+      // DRF paginated shape: { count, next, previous, results }
+      const results = Array.isArray(data) ? data : data?.results || [];
+      const mapped = results.map(normalize);
+
+      setNotifications((prev) => (append ? [...prev, ...mapped] : mapped));
+      setNextUrl(Array.isArray(data) ? null : data?.next || null);
+
+      // Unread based on what we've loaded into state
+      setUnreadCount((prev) => (append ? prev + recalcUnread(mapped) : recalcUnread(mapped)));
     } catch (error) {
-      // handle error
+      // You can toast/log if you like
     } finally {
       setLoading(false);
     }
   };
 
-  // Setup WebSocket connection when authenticated
+  const loadMore = async () => {
+    if (!nextUrl) return;
+    await fetchNotifications(nextUrl, { append: true });
+  };
+
+  // ------- WebSocket
   useEffect(() => {
     if (!isAuthenticated) return;
+
     const access = localStorage.getItem('access');
     const ws = new window.WebSocket(`ws://localhost:8000/ws/notifications/?token=${access}`);
-
     wsRef.current = ws;
-
-    ws.onopen = () => {
-      // Optionally: console.log('WebSocket connected');
-    };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        // Assuming data matches your sample
         if (data?.message) {
           toast(
             <div className="flex items-start">
@@ -63,54 +79,45 @@ export function NotificationProvider({ children }) {
               </div>
             </div>,
             {
-              position: "bottom-right",
+              position: 'bottom-right',
               autoClose: 5000,
               hideProgressBar: false,
               closeOnClick: true,
               pauseOnHover: true,
               draggable: true,
-              progress: undefined,
               className: 'notification-toast',
-              onClick: () => setIsNotificationVisible(true)
+              onClick: () => setIsNotificationVisible(true),
             }
           );
-          new Audio('/assets/notification.wav').play();
+          // play sound (ignore errors silently)
+          try { new Audio('/assets/notification.wav').play(); } catch {}
         }
-        setNotifications(prev => [
-          {
-            id: data.id,
-            sender_name: 'System',
-            avatar: null,
-            text: data.message,
-            description: data.data?.type?.replace('_', ' ').toUpperCase(),
-            is_read: data.read,
-            created_at: data.created_at,
-          },
-          ...prev,
-        ]);
-        setUnreadCount(prev => prev + 1);
-      } catch (e) {
-        // Handle JSON error
+
+        const incoming = normalize({
+          ...data,
+          recipient: data.recipient ?? { username: 'System', avatar: null },
+          read: data.read ?? false,
+        });
+
+        // Prepend new notification
+        setNotifications((prev) => [incoming, ...prev]);
+
+        // Increment unread only if it's unread
+        setUnreadCount((prev) => (incoming.is_read ? prev : prev + 1));
+      } catch {
+        // ignore JSON parse errors
       }
     };
 
-    ws.onerror = () => {
-      // Optionally: toast.error('Notification connection error');
-    };
-
-    ws.onclose = () => {
-      // Optionally: console.log('WebSocket closed');
-    };
-
     return () => {
-      ws.close();
+      try { ws.close(); } catch {}
     };
   }, [isAuthenticated]);
 
-  // Fetch on demand (and when opening modal)
+  // Fetch latest when opening the panel
   useEffect(() => {
     if (isAuthenticated && isNotificationVisible) {
-      fetchNotifications();
+      fetchNotifications('/notifications', { append: false });
     }
   }, [isAuthenticated, isNotificationVisible]);
 
@@ -119,14 +126,12 @@ export function NotificationProvider({ children }) {
   const markAsRead = async (notificationId) => {
     try {
       await api.patch(`/notifications/${notificationId}/`, { read: true });
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId ? { ...n, is_read: true } : n
-        )
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      // handle error or toast
+      // optional: toast.error('Failed to mark as read');
     }
   };
 
@@ -136,15 +141,13 @@ export function NotificationProvider({ children }) {
     notifications,
     unreadCount,
     markAsRead,
-    fetchNotifications,
+    fetchNotifications, // still exposed if you want to trigger manually
+    loadMore,
+    hasMore: !!nextUrl,
     loading,
   };
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
 
 export function useNotification() {

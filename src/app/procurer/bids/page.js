@@ -6,6 +6,7 @@ import { useApi } from "@/app/services/axios";
 import { useDebounce } from "use-debounce";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBuilding } from "@fortawesome/free-solid-svg-icons";
+import { useRouter } from "next/navigation";
 
 
 // Status mapping
@@ -22,6 +23,7 @@ export default function BidsList() {
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebounce(search, 400);
   const { api } = useApi();
+  const router = useRouter();
 
   // Fetch list (first page)
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function BidsList() {
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">#</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Company</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Tender</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase">Price</th>
+              <th className="px-6 py-4 text-left text-xs font-bold uppercase">Est. Price</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Submitted At</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Status</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Score</th>
@@ -148,8 +150,11 @@ export default function BidsList() {
                     }
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <button className="text-[#38a0f7] hover:underline text-sm flex items-center gap-1">
-                      <Eye size={16} /> View
+                    <button
+                      onClick={() => router.push(`/procurer/bids/${b.id}`)}
+                      className="text-[#38a0f7] cursor-pointer hover:underline text-sm flex items-center gap-1"
+                    >
+                      View
                     </button>
                   </td>
                 </tr>

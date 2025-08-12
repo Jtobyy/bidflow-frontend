@@ -68,7 +68,7 @@ export default function TenderDetailsModal({
       ) : (
         <>
           <div className="flex flex-col gap-2 mb-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 cursor-pointer">
               <span className="rounded-full p-2" style={{ background: statusObj.bg }}>
                 <Briefcase className="w-5 h-5" style={{ color: statusObj.color }} />
               </span>
@@ -169,7 +169,7 @@ export default function TenderDetailsModal({
               </button>
             ) : computedStatus === "open" ? (
               <button
-                className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-2 rounded-lg"
+                className="bg-[#10B981] hover:bg-[#059669] text-white font-semibold py-2 rounded-lg cursor-pointer"
                 onClick={onApply}
               >
                 Apply

@@ -14,7 +14,7 @@ function Sidebar() {
   const menuItems = [
     { label: "Tenders", href: "/vendor/tenders", icon: <Briefcase size={18} /> },
     { label: "My Bids", href: "/vendor/bids", icon: <FileCheck size={18} /> },
-    { label: "Documents", href: "/vendor/documents", icon: <FileText size={18} /> },
+    { label: "Documents", href: "#", icon: <FileText size={18} /> },
     { label: "Settings", href: "/vendor/settings", icon: <Settings size={18} />, bottom: true },
   ];
 

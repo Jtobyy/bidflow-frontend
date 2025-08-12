@@ -4,15 +4,26 @@ import { FileText, ShieldCheck, XCircle, Clock, Search } from "lucide-react";
 import dayjs from "dayjs";
 import { useApi } from "@/app/services/axios";
 import { useDebounce } from "use-debounce";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import DocumentDetailModal from "@/app/components/shared/DocumentDetailModal";
 
-// Map API verification_status to UI display
+// Single source of truth for display
 const statusMap = {
   pending: { label: "Pending", color: "#F59E0B", icon: Clock },
   verified: { label: "Verified", color: "#10B981", icon: ShieldCheck },
-  verification_failed: { label: "Failed", color: "#EF4444", icon: XCircle },
+  failed:   { label: "Failed",   color: "#EF4444", icon: XCircle },      // ✅ add
+  verification_failed: { label: "Failed", color: "#EF4444", icon: XCircle }, // legacy alias (old data)
   expired_certificate: { label: "Expired", color: "#EF4444", icon: XCircle },
   analyzed: { label: "Analyzed", color: "#38a0f7", icon: FileText },
-  // ...add more as needed
+};
+
+// Normalize any legacy/unknown values to something we can render
+const normalizeStatus = (s) => {
+  const v = String(s || "").toLowerCase();
+  if (v === "verification_failed") return "failed"; // alias → canonical
+  // keep "expired_certificate" distinct if you want a special label
+  if (!statusMap[v]) return "pending";
+  return v;
 };
 
 export default function DocumentsList() {
@@ -21,46 +32,51 @@ export default function DocumentsList() {
   const [summary, setSummary] = useState({ total: 0, pending: 0, verified: 0, failed: 0 });
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebounce(search, 400);
-  const { api } = useApi();
 
-  useEffect(() => {
-    fetchDocuments();
-    // eslint-disable-next-line
-  }, [debouncedSearch]);
+  const { api } = useApi();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const action = searchParams.get("action");
+  const selectedId = searchParams.get("id");
+  const showModal = action === "update" && !!selectedId;
+
+  const openDoc = (id) => router.push(`${pathname}?action=update&id=${id}`);
+  const closeModal = () => router.push(pathname);
+
+  useEffect(() => { fetchDocuments(); }, [debouncedSearch]);
 
   const fetchDocuments = () => {
     setLoading(true);
     const query = debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : "";
     api.get(`/bids-documents/${query}`)
       .then(({ data }) => {
-        setDocuments(data.results || []);
-        // Calculate summary stats (can adjust based on your needs)
+        const results = data.results || [];
+        setDocuments(results);
+
+        // ✅ summary counts include both canonical and legacy statuses
+        const failedStatuses = ["failed", "verification_failed", "expired_certificate"];
         setSummary({
-          total: data.count || 0,
-          pending: data.results.filter(d => d.verification_status === "pending").length,
-          verified: data.results.filter(d => d.verification_status === "verified").length,
-          failed: data.results.filter(d =>
-            d.verification_status === "verification_failed" ||
-            d.verification_status === "expired_certificate"
-          ).length,
+          total: data.count || results.length,
+          pending: results.filter(d => normalizeStatus(d.verification_status) === "pending").length,
+          verified: results.filter(d => normalizeStatus(d.verification_status) === "verified").length,
+          failed: results.filter(d => failedStatuses.includes(String(d.verification_status).toLowerCase())).length,
         });
+
         setLoading(false);
       })
       .catch(() => setLoading(false));
   };
 
-  // Filtered by company or doc type (client-side filter, for demo only)
-  const filteredDocs = documents.filter(
-    d =>
-      (d.custom_document_name || "")
-        .toLowerCase()
-        .includes(debouncedSearch.toLowerCase()) ||
-      d.document_type.toLowerCase().includes(debouncedSearch.toLowerCase())
+  const filteredDocs = documents.filter(d =>
+    (d.custom_document_name || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    d.document_type.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   return (
     <div className="px-8 py-8">
-      {/* Summary Cards */}
+      {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <SummaryCard label="Total" count={summary.total} color="#f2f2f2" icon={FileText} />
         <SummaryCard label="Pending" count={summary.pending} color="#F59E0B" icon={Clock} />
@@ -68,12 +84,12 @@ export default function DocumentsList() {
         <SummaryCard label="Failed" count={summary.failed} color="#EF4444" icon={XCircle} />
       </div>
 
-      {/* Search Bar */}
-      <div className="flex px-3  items-center w-full md:w-1/2 mb-6 border border-[#406087]  focus:[#08305e] focus:ring-[#08305e] focus:border-[#08305e] rounded-lg">
+      {/* Search */}
+      <div className="flex px-3 items-center w-full md:w-1/2 mb-6 border border-[#406087] rounded-lg">
         <Search size={18} className="mr-2 text-[#08305e]" />
         <input
           type="text"
-          className=" px-4 py-2 w-full text-[#08305e] focus:outline-none placeholder-[#b7c7de]"
+          className="px-4 py-2 w-full text-[#08305e] focus:outline-none placeholder-[#b7c7de]"
           placeholder="Search by type or name"
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -91,53 +107,93 @@ export default function DocumentsList() {
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">File</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Uploaded At</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Bid</th>
+              <th className="px-6 py-4 text-left text-xs font-bold uppercase">Tender</th>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase">Status</th>
               <th className="px-6 py-4 text-center text-xs font-bold uppercase">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="py-20 text-center text-[#b7c7de] font-medium">
+              <tr><td colSpan={9} className="py-20 text-center text-[#b7c7de] font-medium">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#08305e] mx-auto" />
               </td></tr>
             ) : filteredDocs.length === 0 ? (
-              <tr><td colSpan={8} className="py-20 text-center text-[#b7c7de] font-medium">No documents found.</td></tr>
-            ) : filteredDocs.map(doc => (
-              <tr key={doc.id} className="hover:bg-[#08305e]/5 transition">
-                <td className="px-6 py-4 font-bold">{doc.id}</td>
-                <td className="px-6 py-4">{doc.document_type}</td>
-                <td className="px-6 py-4">{doc.custom_document_name || "-"}</td>
-                <td className="px-6 py-4">
-                  {doc.file?.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                    <a href={doc.file} target="_blank" rel="noopener noreferrer">
-                      <img src={doc.file} alt="Document" className="w-8 h-8 object-cover rounded shadow inline-block mr-2" />
-                      <span className="text-xs text-[#406087] underline">View</span>
-                    </a>
-                  ) : doc.file ? (
-                    <a href={doc.file} target="_blank" rel="noopener noreferrer" className="text-xs text-[#406087] underline">Open</a>
-                  ) : "-"}
-                </td>
-                <td className="px-6 py-4">{dayjs(doc.uploaded_at).format("MMM D, YYYY")}</td>
-                <td className="px-6 py-4">{doc.bid || "-"}</td>
-                <td className="px-6 py-4">
-                  <span className="flex items-center gap-1 font-medium" style={{ color: statusMap[doc.verification_status]?.color }}>
-                    {React.createElement(statusMap[doc.verification_status]?.icon || Clock, { size: 16 })}
-                    {statusMap[doc.verification_status]?.label || doc.verification_status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <button className="text-[#38a0f7] hover:underline text-sm">View</button>
-                </td>
-              </tr>
-            ))}
+              <tr><td colSpan={9} className="py-20 text-center text-[#b7c7de] font-medium">No documents found.</td></tr>
+            ) : filteredDocs.map(doc => {
+              const key = normalizeStatus(doc.verification_status);
+              const meta = statusMap[key] || statusMap.pending;
+              const Icon = meta.icon || Clock;
+              return (
+                <tr key={doc.id} className="hover:bg-[#08305e]/5 transition">
+                  <td className="px-6 py-4 font-bold">{doc.id}</td>
+                  <td className="px-6 py-4">{doc.document_type}</td>
+                  <td className="px-6 py-4">{doc.custom_document_name || "-"}</td>
+                  <td className="px-6 py-4">
+                    {doc.file ? (
+                      <a href={doc.file} target="_blank" rel="noopener noreferrer" className="text-xs text-[#406087] underline">
+                        Open
+                      </a>
+                    ) : "-"}
+                  </td>
+                  <td className="px-6 py-4">{dayjs(doc.uploaded_at).format("MMM D, YYYY")}</td>
+
+                  {/* Bid link */}
+                  <td className="px-6 py-4">
+                    {doc.bid?.id ? (
+                      <button
+                        onClick={() => router.push(`/procurer/bids/${doc.bid.id}`)}
+                        className="text-[#38a0f7] hover:underline cursor-pointer"
+                        title="Open bid details"
+                      >
+                        #{doc.bid.id} — {doc.bid.company?.name || doc.bid.submitted_by?.username || "—"}
+                      </button>
+                    ) : "—"}
+                  </td>
+
+                  {/* Tender link */}
+                  <td className="px-6 py-4">
+                    {doc.bid?.tender?.id ? (
+                      <button
+                        onClick={() => router.push(`/procurer/tenders/${doc.bid.tender.id}`)}
+                        className="text-[#38a0f7] hover:underline cursor-pointer"
+                        title="Open tender"
+                      >
+                        {doc.bid.tender.title}
+                      </button>
+                    ) : "—"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <span className="flex items-center gap-1 font-medium" style={{ color: meta.color }}>
+                      <Icon size={16} /> {meta.label}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => openDoc(doc.id)}
+                      className="text-[#38a0f7] hover:underline text-sm cursor-pointer"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Modal */}
+      <DocumentDetailModal
+        isOpen={showModal}
+        docId={showModal ? Number(selectedId) : null}
+        onClose={closeModal}
+        onUpdated={fetchDocuments}
+      />
     </div>
   );
 }
 
-// Summary Card Subcomponent (reuse your style!)
 function SummaryCard({ label, count, color, icon: Icon }) {
   return (
     <div className="flex items-center gap-3 bg-[#08305e] rounded-lg px-6 py-5 border border-[#254c7c] shadow">

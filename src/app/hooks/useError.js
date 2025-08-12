@@ -12,7 +12,7 @@ export const ErrorProvider = ({ children }) => {
 
     const handleApiError = (error) => {
         console.error("API Error:", error);
-        const errorData = error?.response?.data?.error;
+        const errorData = error?.response?.data;
 
         if (errorData && typeof errorData === 'object') {
             for (let field in errorData) {
@@ -25,6 +25,7 @@ export const ErrorProvider = ({ children }) => {
                 }
             }
         } else {
+            console.log('error, is ', error)
             const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.response?.data?.error;
             toast.error(errorMessage);
             setError(errorMessage);
