@@ -1,12 +1,11 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { Briefcase, Clock, FileCheck } from "lucide-react";
 import dayjs from "dayjs";
 import { useApi } from "@/app/services/axios";
 import { useDebounce } from "use-debounce";
 import TenderDetailsModal from "@/app/components/shared/TenderDetailsModal";
 import { useRouter, useSearchParams } from "next/navigation";
-
 
 // Map status for display, but dynamic label/color logic is used below
 const statusMap = {
@@ -15,8 +14,8 @@ const statusMap = {
   draft:   { label: "Draft",  color: "#F59E0B", bg: "#FFFBEA" },    // Yellow
 };
 
-
-export default function VendorTendersList() {
+// Separate component that uses useSearchParams
+function VendorTendersListContent() {
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -171,5 +170,52 @@ export default function VendorTendersList() {
       />
       {/* Pagination if needed */}
     </div>
+  );
+}
+
+// Loading fallback component for VendorTendersList
+function VendorTendersListLoading() {
+  return (
+    <div className="px-8 py-8">
+      <div className="animate-pulse">
+        {/* Search Bar skeleton */}
+        <div className="flex items-center w-full md:w-1/2 mb-6">
+          <div className="border border-[#406087] rounded-lg px-4 py-2 w-full h-10 bg-gray-200"></div>
+        </div>
+
+        {/* Table skeleton */}
+        <div className="rounded-xl shadow bg-[#fffce8] border border-[#254c7c] overflow-x-auto">
+          <div className="min-w-full divide-y divide-[#e0e7ef]">
+            {/* Table header skeleton */}
+            <div className="bg-[#08305e]/5 px-6 py-4">
+              <div className="flex space-x-4">
+                {[...Array(7)].map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-200 rounded w-20"></div>
+                ))}
+              </div>
+            </div>
+            {/* Table rows skeleton */}
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="px-6 py-4">
+                <div className="flex space-x-4">
+                  {[...Array(7)].map((_, j) => (
+                    <div key={j} className="h-4 bg-gray-200 rounded w-20"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function VendorTendersList() {
+  return (
+    <Suspense fallback={<VendorTendersListLoading />}>
+      <VendorTendersListContent />
+    </Suspense>
   );
 }

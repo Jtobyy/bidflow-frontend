@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { FileText, ShieldCheck, XCircle, Clock, Search } from "lucide-react";
 import dayjs from "dayjs";
 import { useApi } from "@/app/services/axios";
@@ -26,7 +26,8 @@ const normalizeStatus = (s) => {
   return v;
 };
 
-export default function DocumentsList() {
+// Separate component that uses useSearchParams
+function DocumentsListContent() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ total: 0, pending: 0, verified: 0, failed: 0 });
@@ -191,6 +192,67 @@ export default function DocumentsList() {
         onUpdated={fetchDocuments}
       />
     </div>
+  );
+}
+
+// Loading fallback component
+function DocumentsListLoading() {
+  return (
+    <div className="px-8 py-8">
+      <div className="animate-pulse">
+        {/* Summary cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-[#08305e] rounded-lg px-6 py-5 border border-[#254c7c] shadow">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full p-3 bg-gray-200/20 w-12 h-12"></div>
+                <div>
+                  <div className="h-6 bg-gray-200/20 rounded mb-2 w-12"></div>
+                  <div className="h-4 bg-gray-200/20 rounded w-16"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search bar skeleton */}
+        <div className="flex px-3 items-center w-full md:w-1/2 mb-6 border border-[#406087] rounded-lg">
+          <div className="w-5 h-5 bg-gray-200 rounded mr-2"></div>
+          <div className="px-4 py-2 w-full h-10 bg-gray-200 rounded"></div>
+        </div>
+
+        {/* Table skeleton */}
+        <div className="rounded-xl shadow bg-[#fffce8] border border-[#254c7c] overflow-x-auto">
+          <div className="min-w-full divide-y divide-[#e0e7ef]">
+            <div className="bg-[#08305e]/5 px-6 py-4">
+              <div className="flex space-x-4">
+                {[...Array(9)].map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-200 rounded w-16"></div>
+                ))}
+              </div>
+            </div>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="px-6 py-4">
+                <div className="flex space-x-4">
+                  {[...Array(9)].map((_, j) => (
+                    <div key={j} className="h-4 bg-gray-200 rounded w-16"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function DocumentsList() {
+  return (
+    <Suspense fallback={<DocumentsListLoading />}>
+      <DocumentsListContent />
+    </Suspense>
   );
 }
 

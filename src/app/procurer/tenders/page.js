@@ -1,6 +1,6 @@
 // app/procurer/tenders/page.jsx (your TendersList)
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { Briefcase, FileCheck, Clock, Plus, Download, MoreHorizontal } from "lucide-react";
 import dayjs from "dayjs";
 import { useApi } from "@/app/services/axios";
@@ -11,14 +11,14 @@ import ConfirmDialog from "@/app/components/shared/ConfirmDialog";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 
-
 const statusMap = {
   draft: { label: "Draft", color: "#b7c7de", bg: "#f4f8ff" },
   published: { label: "Published", color: "#38a0f7", bg: "#e6f2fe" },
   closed: { label: "Closed", color: "#3EBF0F", bg: "#dcfce7" }
 };
 
-export default function TendersList() {
+// Separate component that uses useSearchParams
+function TendersListContent() {
   const [summary, setSummary] = useState({ total: 0, draft: 0, published: 0, closed: 0, due_next_month: 0 });
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -279,7 +279,7 @@ export default function TendersList() {
         title="Delete tender?"
         message={
           <>
-            This will permanently delete <span className="font-semibold">“{deleteState.title || `Tender #${deleteState.id}`}”</span>.
+            This will permanently delete <span className="font-semibold">"{deleteState.title || `Tender #${deleteState.id}`}"</span>.
             <br />This action cannot be undone.
           </>
         }
@@ -290,6 +290,74 @@ export default function TendersList() {
         onConfirm={confirmDelete}
       />
     </div>
+  );
+}
+
+// Loading fallback component for TendersList
+function TendersListLoading() {
+  return (
+    <div className="px-8 py-8">
+      <div className="animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-end mb-6">
+          <div className="bg-gray-200 rounded-lg px-5 py-2 w-32 h-10"></div>
+        </div>
+
+        {/* Summary cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-[#08305e] rounded-lg px-6 py-5 border border-[#254c7c] shadow">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full p-3 bg-gray-200/20 w-12 h-12"></div>
+                <div>
+                  <div className="h-6 bg-gray-200/20 rounded mb-2 w-12"></div>
+                  <div className="h-4 bg-gray-200/20 rounded w-16"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search & Export skeleton */}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-5 gap-3">
+          <div className="flex items-center w-full md:w-1/2">
+            <div className="border border-[#406087] rounded-lg px-4 py-2 w-full h-10 bg-gray-200"></div>
+          </div>
+          <div className="bg-gray-200 rounded-lg px-4 py-2 w-24 h-10"></div>
+        </div>
+
+        {/* Table skeleton */}
+        <div className="rounded-xl shadow bg-[#fffce8] border border-[#254c7c] overflow-x-auto">
+          <div className="min-w-full divide-y divide-[#e0e7ef]">
+            <div className="bg-[#08305e]/5 px-6 py-4">
+              <div className="flex space-x-4">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-4 bg-gray-200 rounded w-20"></div>
+                ))}
+              </div>
+            </div>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="px-6 py-4">
+                <div className="flex space-x-4">
+                  {[...Array(8)].map((_, j) => (
+                    <div key={j} className="h-4 bg-gray-200 rounded w-20"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function TendersList() {
+  return (
+    <Suspense fallback={<TendersListLoading />}>
+      <TendersListContent />
+    </Suspense>
   );
 }
 
